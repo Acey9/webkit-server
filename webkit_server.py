@@ -11,6 +11,9 @@ import json
 
 from chardet.universaldetector import UniversalDetector
 
+class DecodingException(Exception):
+    pass
+
 # path to the `webkit_server` executable
 SERVER_EXEC = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                            'webkit_server'))
@@ -551,7 +554,23 @@ class ServerConnection(object):
         pass
 
     charset = self.guess_charset(msg)
-    return msg.decode(charset.get('encoding')
+    try:
+        return msg.decode(charset.get('encoding'))
+    except:
+        pass
+
+    if charset.get('encoding', '').lower() == 'gb2312':
+        try:
+            return msg.decode('gbk')
+        except:
+            pass
+
+    if charset.get('encoding', '').lower() == 'gbk':
+        try:
+            return msg.decode('gb2312')
+        except:
+            pass
+    raise DecodingException("decoding error")
 
   def _writeline(self, line):
     """ Writes a line to the underlying socket. """
