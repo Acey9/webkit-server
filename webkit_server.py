@@ -9,6 +9,8 @@ import socket
 import atexit
 import json
 
+from chardet.universaldetector import UniversalDetector
+
 # path to the `webkit_server` executable
 SERVER_EXEC = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                            'webkit_server'))
@@ -531,10 +533,25 @@ class ServerConnection(object):
 
     return msg
 
+    def guess_charset(self, msg):
+      detector = UniversalDetector()
+      for line in msg.split('\n'):
+          detector.feed(line)
+          if detector.done: break
+      detector.close()
+      return detector.result
+  
   def _read_message(self):
     """ Reads a single size-annotated message from the server """
     size = int(self.buf.read_line().decode("utf-8"))
-    return self.buf.read(size).decode("utf-8")
+    msg = self.buf.read(size)
+    try:
+        return msg.decode('utf-8')
+    except:
+        pass
+
+    charset = self.guess_charset(msg)
+    return msg.decode(charset.get('encoding')
 
   def _writeline(self, line):
     """ Writes a line to the underlying socket. """
